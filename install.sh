@@ -43,22 +43,29 @@ else
 fi
 
 # --- 2. Install the web-search agent skill ----------------------------------
+# The skill ships in this repo (skills/web-search); install it into the
+# shared agent skills dir, optionally linked into the Claude skills folder.
 
-SKILL_SRC="$HOME/.agents/skills/web-search"
+SKILL_SRC="$SCRIPT_DIR/skills/web-search"
+SKILL_DEST="$HOME/.agents/skills/web-search"
 CLAUDE_SKILLS_DIR="$HOME/.claude/skills"
 
-if [ ! -d "$SKILL_SRC" ]; then
-  echo "note: $SKILL_SRC not found; skipping web-search skill"
-else
-  echo "Skill available: $SKILL_SRC"
+if [ ! -f "$SKILL_SRC/SKILL.md" ]; then
+  echo "error: $SKILL_SRC/SKILL.md not found" >&2
+  exit 1
+fi
 
-  # Optionally symlink into the Claude skills folder (auto if it already
-  # exists, or force with --claude).
-  if [ -d "$CLAUDE_SKILLS_DIR" ] || [ "$WITH_CLAUDE" = true ]; then
-    mkdir -p "$CLAUDE_SKILLS_DIR"
-    ln -sfn "$SKILL_SRC" "$CLAUDE_SKILLS_DIR/web-search"
-    echo "Linked: $CLAUDE_SKILLS_DIR/web-search -> $SKILL_SRC"
-  fi
+mkdir -p "$HOME/.agents/skills"
+rm -rf "$SKILL_DEST"
+cp -r "$SKILL_SRC" "$SKILL_DEST"
+echo "Installed: $SKILL_DEST"
+
+# Optionally symlink into the Claude skills folder (auto if it already
+# exists, or force with --claude).
+if [ -d "$CLAUDE_SKILLS_DIR" ] || [ "$WITH_CLAUDE" = true ]; then
+  mkdir -p "$CLAUDE_SKILLS_DIR"
+  ln -sfn "$SKILL_DEST" "$CLAUDE_SKILLS_DIR/web-search"
+  echo "Linked: $CLAUDE_SKILLS_DIR/web-search -> $SKILL_DEST"
 fi
 
 echo
