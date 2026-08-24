@@ -17,17 +17,29 @@ for arg in "$@"; do
 done
 
 # --- 1. Install the CLI -----------------------------------------------------
+# Use a dedicated venv so this works on externally-managed Pythons
+# (PEP 668, e.g. Homebrew or system Python on macOS) and keeps the tool's
+# dependencies isolated from the rest of the system.
 
 BIN_DIR="$HOME/.local/bin"
+VENV_DIR="$HOME/.local/share/search-cli/venv"
 mkdir -p "$BIN_DIR"
 
-echo "Installing search-cli from $SCRIPT_DIR ..."
-python3 -m pip install --user -q "$SCRIPT_DIR"
+echo "Installing search-cli from $SCRIPT_DIR into $VENV_DIR ..."
 
-# pip --user places console scripts in the user base bin dir;
-# symlink it into ~/.local/bin so it lands on PATH.
-USER_BASE="$(python3 -m site --user-base)"
-SRC="$USER_BASE/bin/search-cli"
+if [ ! -x "$VENV_DIR/bin/python" ]; then
+  if ! python3 -m venv "$VENV_DIR"; then
+    echo "error: could not create a venv. Install a Python with venv support" >&2
+    echo "  macOS (Homebrew):  brew install python" >&2
+    exit 1
+  fi
+fi
+
+"$VENV_DIR/bin/pip" install -q --upgrade pip
+"$VENV_DIR/bin/pip" install -q "$SCRIPT_DIR"
+
+# Symlink the venv console script into ~/.local/bin so it lands on PATH.
+SRC="$VENV_DIR/bin/search-cli"
 DEST="$BIN_DIR/search-cli"
 
 if [ ! -x "$SRC" ]; then
@@ -35,12 +47,8 @@ if [ ! -x "$SRC" ]; then
   exit 1
 fi
 
-if [ "$(readlink -f "$SRC")" = "$(readlink -f "$DEST" 2>/dev/null)" ]; then
-  echo "Installed: $DEST (already in place)"
-else
-  ln -sfn "$SRC" "$DEST"
-  echo "Installed: $DEST -> $SRC"
-fi
+ln -sfn "$SRC" "$DEST"
+echo "Installed: $DEST -> $SRC"
 
 # --- 2. Install the web-search agent skill ----------------------------------
 # The skill ships in this repo (skills/web-search); install it into the
